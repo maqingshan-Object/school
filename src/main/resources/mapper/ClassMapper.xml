@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+    <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="org.example.school.dao.ClassMapper">
+
+    <resultMap id="ClassMap" type="org.example.school.model.Class">
+        <id property="id" column="class_id"/>          <!-- 主键映射 -->
+        <result property="name" column="class_name"/> <!-- 普通字段映射 -->
+        <result property="grade" column="grade"/>
+        <result property="teacherId" column="class_teacher_id"/>
+    </resultMap>
+
+
+    <select id="queryList" resultMap="ClassMap">
+        select * from classes
+    </select>
+
+</mapper>
