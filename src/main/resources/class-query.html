@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 添加 Referrer Policy 元标签 -->
+    <title>班级查询系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        neutral: '#6B7280',
+                        'neutral-light': '#F3F4F6',
+                        'neutral-dark': '#1F2937',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .shadow-card {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+            .transition-custom {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+<div class="container mx-auto px-4 py-12 max-w-6xl">
+    <!-- 页面标题 -->
+    <header class="mb-10 text-center">
+        <h1 class="text-[clamp(1.8rem,3vw,2.5rem)] font-bold text-neutral-dark mb-3">班级查询系统</h1>
+        <p class="text-neutral text-lg">轻松查询班级信息，了解班级详情</p>
+    </header>
+
+    <!-- 查询区域 -->
+    <div class="bg-white rounded-xl shadow-card p-6 mb-8 transform hover:shadow-lg transition-custom">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="w-full md:w-auto">
+                <button id="queryBtn" class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-medium transition-custom flex items-center gap-2">
+                    <i class="fa fa-search"></i>
+                    <span>查询班级</span>
+                </button>
+            </div>
+            <div class="w-full md:w-auto">
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="搜索班级名称..." class="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-custom">
+                    <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载状态 -->
+    <div id="loading" class="hidden flex-col items-center justify-center py-16">
+        <div class="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
+        <p class="text-neutral-dark font-medium">正在加载数据...</p>
+    </div>
+
+    <!-- 错误提示 -->
+    <div id="error" class="hidden bg-red-50 border-l-4 border-red-400 p-4 mb-8 rounded-r-lg">
+        <div class="flex items-center">
+            <i class="fa fa-exclamation-circle text-red-500 mr-3 text-xl"></i>
+            <div>
+                <p id="errorMsg" class="text-red-700 font-medium">加载失败，请重试</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 班级列表 -->
+    <div id="classList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- 班级卡片将动态插入这里 -->
+    </div>
+
+    <!-- 空状态 -->
+    <div id="emptyState" class="hidden flex-col items-center justify-center py-16">
+        <div class="w-24 h-24 mb-4 bg-neutral-light rounded-full flex items-center justify-center">
+            <i class="fa fa-folder-open-o text-4xl text-neutral/40"></i>
+        </div>
+        <h3 class="text-xl font-medium text-neutral-dark mb-2">暂无班级数据</h3>
+        <p class="text-neutral">点击上方"查询班级"按钮获取数据</p>
+    </div>
+</div>
+
+<script>
+    // DOM 元素
+    const queryBtn = document.getElementById('queryBtn');
+    const searchInput = document.getElementById('searchInput');
+    const classList = document.getElementById('classList');
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const errorMsg = document.getElementById('errorMsg');
+    const emptyState = document.getElementById('emptyState');
+
+    // 查询班级数据
+    async function fetchClassData() {
+        // 显示加载状态，隐藏其他内容
+        showElement(loading);
+        hideElement(classList);
+        hideElement(error);
+        hideElement(emptyState);
+
+        try {
+            // 调用后端接口
+            const response = await fetch('http://localhost:8082/class/queryList');
+
+            // 检查响应状态
+            if (!response.ok) {
+                throw new Error(`HTTP错误，状态码: ${response.status}`);
+            }
+
+            // 解析JSON数据
+            const data = await response.json();
+
+            // 处理数据
+            processClassData(data);
+        } catch (error) {
+            console.error('获取班级数据失败:', error);
+            showError(`获取班级数据失败: ${error.message}`);
+        }
+    }
+
+    // 处理班级数据
+    function processClassData(data) {
+        // 隐藏加载状态
+        hideElement(loading);
+
+        // 检查是否有数据
+        if (!data || data.length === 0) {
+            showElement(emptyState);
+            return;
+        }
+
+        // 清空列表
+        classList.innerHTML = '';
+
+        // 渲染班级卡片
+        data.forEach(classInfo => {
+            const card = createClassCard(classInfo);
+            classList.appendChild(card);
+        });
+
+        // 显示班级列表
+        showElement(classList);
+    }
+
+    // 创建班级卡片
+    function createClassCard(classInfo) {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl shadow-card overflow-hidden transform hover:scale-[1.02] hover:shadow-lg transition-custom';
+
+        // 设置卡片内容
+        card.innerHTML = `
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-xl font-bold text-neutral-dark">${classInfo.name}</h3>
+                        <span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">${classInfo.grade}年级</span>
+                    </div>
+                    <div class="space-y-3 text-neutral">
+                        <div class="flex items-center">
+                            <i class="fa fa-user-circle text-primary mr-2"></i>
+                            <span>班主任: ${classInfo.teacherId || '暂无'}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-neutral-light px-6 py-3 flex justify-between items-center">
+                    <span class="text-sm text-neutral">更新时间: ${new Date().toLocaleDateString()}</span>
+                    <button class="text-primary hover:text-primary/80 font-medium text-sm flex items-center gap-1 transition-custom">
+                        <span>详情</span>
+                        <i class="fa fa-angle-right"></i>
+                    </button>
+                </div>
+            `;
+
+        return card;
+    }
+
+    // 显示错误信息
+    function showError(message) {
+        errorMsg.textContent = message;
+        showElement(error);
+        hideElement(loading);
+        hideElement(classList);
+        hideElement(emptyState);
+    }
+
+    // 显示元素
+    function showElement(element) {
+        element.classList.remove('hidden');
+    }
+
+    // 隐藏元素
+    function hideElement(element) {
+        element.classList.add('hidden');
+    }
+
+    // 搜索功能
+    function handleSearch() {
+        const searchValue = searchInput.value.toLowerCase().trim();
+        const cards = classList.querySelectorAll('div[class*="bg-white rounded-xl"]');
+
+        if (!cards.length) return;
+
+        let hasResults = false;
+
+        cards.forEach(card => {
+            const className = card.querySelector('h3').textContent.toLowerCase();
+            if (className.includes(searchValue)) {
+                card.classList.remove('hidden');
+                hasResults = true;
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+
+        if (!hasResults && searchValue) {
+            showElement(emptyState);
+            hideElement(classList);
+        } else {
+            hideElement(emptyState);
+            showElement(classList);
+        }
+    }
+
+    // 事件监听
+    queryBtn.addEventListener('click', fetchClassData);
+    searchInput.addEventListener('input', handleSearch);
+
+    // 初始显示空状态
+    document.addEventListener('DOMContentLoaded', () => {
+        showElement(emptyState);
+    });
+</script>
+</body>
+</html>
