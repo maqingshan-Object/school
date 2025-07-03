@@ -17,4 +17,37 @@
         select * from classes
     </select>
 
+    <insert id="addClass" parameterType="org.example.school.model.Class">
+        INSERT INTO classes (class_name, grade, class_teacher_id)
+        VALUES (#{name}, #{grade}, #{teacherId})
+    </insert>
+
+
+    <select id="queryListStu" resultType="org.example.school.dto.StudentInfoDTO">
+        select
+            s.student_id sId,
+            s.student_name sName,
+            s.gender sGender,
+            s.phone sPhone,
+            s.email eMail,
+            c.class_name className,
+            t.teacher_name tName,
+            t.gender tGender,
+            t.title tTitle,
+            t.phone tPhone
+        from students s
+                 left join classes c on s.class_id = c.class_id
+                 left join teachers t  on c.class_teacher_id = t.teacher_id
+        <where>
+            <if test="id != null and id != '' ">
+                s.student_id = #{id}
+            </if>
+        </where>
+
+    </select>
+
+
+
+
+
 </mapper>
